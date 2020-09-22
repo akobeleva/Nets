@@ -1,12 +1,8 @@
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.io.IOException;
 
 public class App {
-    public static void main(String[] args) throws UnknownHostException {
-        InetAddress myIP = null;
-        myIP = InetAddress.getLocalHost();
-        System.out.println(myIP);
-        Client client = new Client();
+    public static void main(String[] args) throws IOException {
+        Client client = new Client(args[0]);
         client.findCopies();
     }
 }

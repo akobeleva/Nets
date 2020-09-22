@@ -1,94 +1,64 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.SocketAddress;
+import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class Client {
-    private SocketAddress address;
+    private InetAddress multicastAddress;
     private MulticastSocket socket;
-
-    private Map<InetAddress, Long> aliveCopies = new HashMap<>();
+    private final long timeout = 5000;
+    private Map<UUID, Long> aliveCopies;
     byte[] sendData = new byte[512];
     byte[] receiveData = new byte[512];
+    private long lastSendTime;
+    private long lastReceiveTime;
+    private final int port = 4446;
+    private UUID myUUID;
 
-    public void findCopies(){}
+    Client(String address) throws IOException {
+        multicastAddress = InetAddress.getByName(address);
+        socket = new MulticastSocket(port);
+        socket.joinGroup(multicastAddress);
+        socket.setSoTimeout((int) timeout);
+        aliveCopies = new HashMap<>();
+        lastReceiveTime = 4500;
+        lastSendTime = 5200;
+        myUUID = UUID.randomUUID();
+        sendData = myUUID.toString().getBytes();
+        System.out.println("Your UUID: " + myUUID);
+    }
 
+    public void findCopies() {
+        while (true) {
+            sendUDP();
+            UUID receiveUUID = receiveUDP();
+            aliveCopies.put(receiveUUID, lastReceiveTime);
+            for (Map.Entry<UUID, Long> entry : aliveCopies.entrySet()) {
+                System.out.println("Node " + entry.getKey() + " is alive");
+            }
+            aliveCopies.entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue() > timeout);
+        }
+        }
 
-    private InetAddress receiveUDP() {
+    private UUID receiveUDP() {
         DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
         try {
             socket.receive(receivePacket);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return receivePacket.getAddress();
+        lastReceiveTime = System.currentTimeMillis();
+        return UUID.nameUUIDFromBytes(receiveData);
     }
 
-    private void sendUDP(){
-
-    }
-/*import java.net.Socket
-
-        fun main(args: Array<String>) {
-        val app = App("Hello", "224.0.0.0", 4441)
-        }
-        import java.net.*
-
-class App constructor(msg: String, address: String, port: Int) {
-
-private val timeout = 5000
-
-private val address: SocketAddress //For multicasting
-private val socket: MulticastSocket = MulticastSocket(port) //Default port
-private var receiveLastTime: Long
-private var sendLastTime: Long
-
-private var copies = HashMap<String, Long>()
-
-        init {
-        socket.soTimeout = timeout
-        this.address = InetSocketAddress(address, port)
-        socket.joinGroup(this.address, NetworkInterface.getByInetAddress(InetAddress.getLocalHost()))
-        receiveLastTime = 5000
-        sendLastTime = 4000
-        copies.clear()
-        findCopies()
-        }
-
-private fun findCopies() {
-        sendLastTime = System.currentTimeMillis()
-        while (true) {
-//sending message to users in multicast group with timeout
-        if (System.currentTimeMillis() - sendLastTime > timeout) sendMessage("DDOS")
-//receive a message and remember user in map
-        val ip = receiveMessage()
-        if (ip.isNotEmpty()) copies.put(ip, receiveLastTime)
-//if someone don't send a message for a long time then delete him from map
-        for (entry in copies)
-        if (System.currentTimeMillis() - entry.value > timeout) copies.remove(entry.key)
-
-        println("Number of live devices: ${copies.size}")
-        }
-        }
-
-private fun receiveMessage(): String {
-        val requestPacket = DatagramPacket(ByteArray(256), ByteArray(256).size)
+    private void sendUDP() {
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, multicastAddress, port);
         try {
-        socket.receive(requestPacket)
-        } catch (ex : SocketTimeoutException) {
-        return ""
+            socket.send(sendPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        receiveLastTime = System.currentTimeMillis()
-        return requestPacket.address.toString()
-        }
-
-private fun sendMessage(mes: String) {
-        socket.send(DatagramPacket(mes.toByteArray(), mes.toByteArray().size, address))
-        sendLastTime = System.currentTimeMillis()
-        }
-        }
-        */
+        lastReceiveTime = System.currentTimeMillis();
+    }
 }
