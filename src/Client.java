@@ -20,25 +20,27 @@ public class Client {
         multicastAddress = InetAddress.getByName(address);
         socket = new MulticastSocket(port);
         socket.joinGroup(multicastAddress);
-        socket.setSoTimeout((int) timeout);
+        //socket.setSoTimeout((int) timeout);
         aliveCopies = new HashMap<>();
         lastReceiveTime = 4500;
-        lastSendTime = 5200;
+        lastSendTime = 0;
         myUUID = UUID.randomUUID();
         sendData = myUUID.toString().getBytes();
-        System.out.println("Your UUID: " + myUUID);
+        System.out.println("Your UUID: " + myUUID.toString());
     }
 
     public void findCopies() {
+        sendUDP();
+        //lastSendTime = System.currentTimeMillis();
         while (true) {
-            sendUDP();
+            if (System.currentTimeMillis() - lastSendTime > 1000) sendUDP();
             UUID receiveUUID = receiveUDP();
             aliveCopies.put(receiveUUID, lastReceiveTime);
             for (Map.Entry<UUID, Long> entry : aliveCopies.entrySet()) {
                 System.out.println("Node " + entry.getKey() + " is alive");
             }
             aliveCopies.entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue() > timeout);
-        }
+            }
         }
 
     private UUID receiveUDP() {
@@ -59,6 +61,6 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        lastReceiveTime = System.currentTimeMillis();
+        lastSendTime = System.currentTimeMillis();
     }
 }
