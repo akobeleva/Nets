@@ -16,7 +16,6 @@ public class Client {
     private long lastReceiveTime;
     private final int port;
     private UUID myUUID;
-   // private UUID emptyUUID;
     private int lengthUUID;
 
     Client(String address, int argport) throws IOException {
@@ -30,7 +29,6 @@ public class Client {
         lastReceiveTime = 0;
         lastSendTime = 0;
         myUUID = UUID.randomUUID();
-       // emptyUUID = UUID.randomUUID();
         lengthUUID = myUUID.toString().length();
         sendData = myUUID.toString().getBytes();
     }
@@ -60,6 +58,7 @@ public class Client {
         DatagramPacket receivePacket = new DatagramPacket(receiveData, lengthUUID);
         try {
             socket.receive(receivePacket);
+            System.out.println("receive");
         } catch (SocketTimeoutException e) {
             return null;
         }
@@ -71,6 +70,7 @@ public class Client {
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, multicastAddress, port);
         try {
             socket.send(sendPacket);
+            System.out.println("send");
         } catch (IOException e) {
             e.printStackTrace();
         }
