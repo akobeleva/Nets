@@ -23,6 +23,7 @@ public class Client {
         port = argport;
         socket = new MulticastSocket(port);
         socket.joinGroup(multicastAddress);
+       // socket.setSoTimeout(3000);
         socket.setSoTimeout((int) timeout);
         aliveCopies = new HashMap<>();
         lastReceiveTime = 0;
@@ -34,16 +35,22 @@ public class Client {
     }
 
     public void findCopies() {
+        LinkedList<UUID> clones = new LinkedList<>();
         while (true) {
             if (System.currentTimeMillis() - lastSendTime > 1000) sendUDP();
             UUID receiveUUID = receiveUDP();
             if (receiveUUID != emptyUUID)
                 aliveCopies.put(receiveUUID, lastReceiveTime);
-            aliveCopies.entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue() > timeout);
+            //aliveCopies.entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue() > timeout);
             for (Map.Entry<UUID, Long> entry : aliveCopies.entrySet()) {
-                //if (System.currentTimeMillis() - entry.getValue() > timeout) clones.add(entry.getKey());
-                System.out.println("Node " + entry.getKey() + " is alive");
+                if (System.currentTimeMillis() - entry.getValue() > timeout) clones.add(entry.getKey());
+                //System.out.println("Node " + entry.getKey() + " is alive");
             }
+            for (UUID entry : clones)
+                aliveCopies.remove(entry);
+            clones.clear();
+            for (Map.Entry<UUID, Long> entry : aliveCopies.entrySet())
+                System.out.println("Node " + entry.getKey() + " is alive");
         }
     }
 
