@@ -11,12 +11,13 @@ public class Client {
     private final long timeout = 5000;
     private Map<UUID, Long> aliveCopies;
     private byte[] sendData;
-    private byte[] receiveData = new byte[512];
+    private byte[] receiveData;
     private long lastSendTime;
     private long lastReceiveTime;
     private final int port;
     private UUID myUUID;
-    private UUID emptyUUID;
+   // private UUID emptyUUID;
+    private int lengthUUID;
 
     Client(String address, int argport) throws IOException {
         multicastAddress = InetAddress.getByName(address);
@@ -29,17 +30,17 @@ public class Client {
         lastReceiveTime = 0;
         lastSendTime = 0;
         myUUID = UUID.randomUUID();
-        emptyUUID = UUID.randomUUID();
+       // emptyUUID = UUID.randomUUID();
+        lengthUUID = myUUID.toString().length();
         sendData = myUUID.toString().getBytes();
-        //System.out.println("Your UUID: " + myUUID.toString());
     }
 
-    public void findCopies() {
+    public void findCopies() throws IOException {
         LinkedList<UUID> clones = new LinkedList<>();
         while (true) {
             if (System.currentTimeMillis() - lastSendTime > 1000) sendUDP();
             UUID receiveUUID = receiveUDP();
-            if (receiveUUID != emptyUUID)
+            if (receiveUUID != null)
                 aliveCopies.put(receiveUUID, lastReceiveTime);
             //aliveCopies.entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue() > timeout);
             for (Map.Entry<UUID, Long> entry : aliveCopies.entrySet()) {
@@ -54,12 +55,13 @@ public class Client {
         }
     }
 
-    private UUID receiveUDP() {
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+    private UUID receiveUDP() throws IOException{
+        receiveData = new byte[lengthUUID];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, lengthUUID);
         try {
             socket.receive(receivePacket);
-        } catch (IOException e) {
-            return emptyUUID;
+        } catch (SocketTimeoutException e) {
+            return null;
         }
         lastReceiveTime = System.currentTimeMillis();
         return UUID.nameUUIDFromBytes(receiveData);
